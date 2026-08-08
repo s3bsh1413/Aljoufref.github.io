@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بطاقة توفر الحكام</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --pitch:#1F4D3E;
+    --pitch-dark:#153A2E;
+    --pitch-line:#3E7A63;
+    --paper:#F1F0E9;
+    --paper-raised:#FFFFFF;
+    --ink:#20241F;
+    --ink-soft:#6B6F64;
+    --line:#DCD9CC;
+    --available:#2E7D5B;
+    --available-bg:#E4F3EA;
+    --unavailable:#B23A32;
+    --unavailable-bg:#FBE7E4;
+    --pending:#A9791E;
+    --pending-bg:#F7EFD9;
+    --radius:14px;
+    --shadow:0 2px 10px rgba(21,58,46,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Tajawal',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+  }
+  h1,h2,h3,.display{
+    font-family:'Almarai',sans-serif;
+    font-weight:800;
+    margin:0;
+  }
+  #app{max-width:760px;margin:0 auto;padding-bottom:60px;}
+
+  /* header */
+  header.top{
+    background:linear-gradient(160deg,var(--pitch) 0%,var(--pitch-dark) 100%);
+    color:#fff;
+    padding:22px 20px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  header.top::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 46px);
+    pointer-events:none;
+  }
+  .top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .whistle{width:30px;height:30px;flex:none;}
+  .brand h1{font-size:19px;letter-spacing:0.2px;}
+  .brand span{display:block;font-size:12px;color:#CFE3D9;font-weight:400;font-family:'Tajawal';margin-top:1px;}
+  .back-btn{
+    background:rgba(255,255,255,0.14);
+    border:1px solid rgba(255,255,255,0.25);
+    color:#fff;
+    padding:7px 14px;
+    border-radius:20px;
+    font-family:'Tajawal';
+    font-size:13px;
+    cursor:pointer;
+  }
+  .back-btn:active{background:rgba(255,255,255,0.28);}
+
+  main{padding:18px 16px 10px;}
+
+  /* generic components */
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+    margin-bottom:14px;
+  }
+  .muted{color:var(--ink-soft);font-size:13.5px;}
+  .btn{
+    font-family:'Tajawal';
+    font-weight:700;
+    font-size:15px;
+    border:none;
+    border-radius:11px;
+    padding:13px 18px;
+    cursor:pointer;
+    width:100%;
+    transition:transform .08s ease;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--pitch);color:#fff;}
+  .btn-primary:disabled{background:#9CAFA6;cursor:not-allowed;}
+  .btn-outline{background:transparent;color:var(--pitch);border:1.5px solid var(--pitch);}
+  .btn-ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
+  .btn-danger{background:transparent;color:var(--unavailable);border:1.5px solid var(--unavailable-bg);}
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{width:auto;flex:1;}
+  select,input[type=text],input[type=date]{
+    font-family:'Tajawal';
+    font-size:15px;
+    padding:12px 14px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    width:100%;
+  }
+  select:focus,input:focus{outline:2px solid var(--pitch-line);outline-offset:1px;}
+  label.field-label{
+    display:block;font-size:13px;font-weight:700;color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field{margin-bottom:14px;}
+
+  /* home */
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  @media (max-width:480px){.role-grid{grid-template-columns:1fr;}}
+  .role-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 16px;
+    text-align:center;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .role-card:active{transform:scale(0.98);}
+  .role-card .ic{font-size:30px;display:block;margin-bottom:10px;}
+  .role-card h3{font-size:16px;margin-bottom:4px;}
+  .role-card p{font-size:12.5px;color:var(--ink-soft);margin:0;}
+  .empty-note{
+    text-align:center;padding:30px 16px;color:var(--ink-soft);font-size:14px;
+  }
+
+  /* referee day cards */
+  .day-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:10px;
+    background:#fff;
+  }
+  .day-card .day-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .day-card .day-name{font-family:'Almarai';font-weight:700;font-size:15px;}
+  .day-card .day-date{font-size:12.5px;color:var(--ink-soft);}
+  .toggle-row{display:flex;gap:8px;}
+  .toggle-btn{
+    flex:1;
+    padding:10px 6px;
+    border-radius:9px;
+    text-align:center;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    border:1.5px solid var(--line);
+    background:#fafaf7;
+    color:var(--ink-soft);
+    transition:all .12s ease;
+    user-select:none;
+  }
+  .toggle-btn.sel-available{background:var(--available-bg);border-color:var(--available);color:var(--available);}
+  .toggle-btn.sel-unavailable{background:var(--unavailable-bg);border-color:var(--unavailable);color:var(--unavailable);}
+  .note-input{margin-top:9px;}
+  .note-input input{font-size:13.5px;padding:9px 12px;}
+
+  /* status pill */
+  .pill{
+    display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;
+  }
+  .pill.available{background:var(--available-bg);color:var(--available);}
+  .pill.unavailable{background:var(--unavailable-bg);color:var(--unavailable);}
+  .pill.pending{background:var(--pending-bg);color:var(--pending);}
+
+  /* confirm */
+  .confirm-icon{
+    width:56px;height:56px;border-radius:50%;
+    background:var(--available-bg);color:var(--available);
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;margin:0 auto 12px;
+  }
+  .summary-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .summary-row:last-child{border-bottom:none;}
+
+  /* admin tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;}
+  .tab-btn{
+    flex:none;
+    padding:9px 16px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:'Tajawal';font-weight:700;font-size:13.5px;
+    color:var(--ink-soft);cursor:pointer;white-space:nowrap;
+  }
+  .tab-btn.active{background:var(--pitch);color:#fff;border-color:var(--pitch);}
+
+  .week-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:13px 4px;border-bottom:1px solid var(--line);
+  }
+  .week-item:last-child{border-bottom:none;}
+  .week-item .wname{font-weight:700;font-size:14.5px;}
+  .week-item .wmeta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .active-tag{background:var(--pitch);color:#fff;font-size:10.5px;padding:2px 9px;border-radius:20px;font-weight:700;}
+
+  .day-row-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .day-row-edit input[type=text]{flex:1.3;}
+  .day-row-edit input[type=date]{flex:1;}
+  .remove-x{
+    flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+    background:#fff;color:var(--unavailable);font-size:16px;cursor:pointer;
+  }
+
+  /* matrix table */
+  .matrix-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+  table.matrix{border-collapse:collapse;width:100%;font-size:13px;}
+  table.matrix th,table.matrix td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.matrix th{background:var(--pitch);color:#fff;font-family:'Almarai';font-weight:700;font-size:12.5px;position:sticky;top:0;}
+  table.matrix td:first-child, table.matrix th:first-child{
+    position:sticky;right:0;background:#fff;text-align:right;font-weight:700;box-shadow:2px 0 4px rgba(0,0,0,0.04);
+  }
+  table.matrix th:first-child{background:var(--pitch-dark);}
+  table.matrix td.available{background:var(--available-bg);color:var(--available);font-weight:700;}
+  table.matrix td.unavailable{background:var(--unavailable-bg);color:var(--unavailable);font-weight:700;}
+  table.matrix td.pending{background:var(--pending-bg);color:var(--pending);}
+
+  .ref-chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .ref-chip{
+    display:flex;align-items:center;gap:6px;
+    background:#fff;border:1px solid var(--line);border-radius:20px;
+    padding:6px 8px 6px 14px;font-size:13px;
+  }
+  .ref-chip button{
+    border:none;background:var(--unavailable-bg);color:var(--unavailable);
+    width:20px;height:20px;border-radius:50%;font-size:12px;cursor:pointer;line-height:1;
+  }
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--pitch-dark);color:#fff;padding:12px 22px;border-radius:30px;
+    font-size:13.5px;box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:50;
+    opacity:0;transition:opacity .25s ease;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+
+  .section-title{font-size:14px;color:var(--ink-soft);font-weight:700;margin:0 0 10px;}
+  .divider{height:1px;background:var(--line);margin:16px 0;}
+
+  ::placeholder{color:#B4B0A0;}
+
+  .pin-input{
+    text-align:center;font-size:26px;letter-spacing:14px;font-family:'Almarai';
+    padding:16px 14px 16px 0;
+  }
+  .lock-wrap{max-width:320px;margin:30px auto 0;text-align:center;}
+  .lock-icon{font-size:34px;margin-bottom:6px;}
+  .pin-error{color:var(--unavailable);font-size:13px;min-height:18px;margin-top:8px;}
+
+  .storage-warn{
+    background:var(--pending-bg);color:var(--pending);
+    font-size:12.5px;text-align:center;padding:9px 16px;
+    border-bottom:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <svg class="whistle" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="22" stroke="#CFE3D9" stroke-width="2" opacity="0.5"/>
+          <path d="M14 20h11a7 7 0 1 1 0 14H20l-6 5v-19z" fill="#fff" opacity="0.92"/>
+          <circle cx="25" cy="27" r="3" fill="var(--pitch-dark)"/>
+        </svg>
+        <div>
+          <h1>بطاقة توفر الحكام</h1>
+          <span id="headSub">حدّد توفرك قبل ما تنزل التكاليف</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;position:relative;z-index:1">
+        <button class="back-btn" id="lockBtn" style="display:none">🔒 قفل</button>
+        <button class="back-btn" id="backBtn" style="display:none">الرئيسية</button>
+      </div>
+    </div>
+  </header>
+  <div class="storage-warn" id="storageWarn" style="display:none">
+    ⚠️ التخزين الدائم غير متاح حاليًا — التعديلات محفوظة لهذه الجلسة فقط وقد تختفي بعد إغلاق الصفحة. أعد تحميل الصفحة بعد قليل وجرّب مرة أخرى.
+  </div>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- storage helpers ---------------- */
+const memCache = {}; // fallback so the app still works if persistent storage hiccups
+let storageWarned = false;
+function warnStorageOnce(){
+  if(storageWarned) return;
+  storageWarned = true;
+  const w = document.getElementById('storageWarn');
+  if(w) w.style.display = 'block';
+}
+async function sGet(key){
+  try{
+    const r = await window.storage.get(key, true);
+    const val = r ? JSON.parse(r.value) : null;
+    if(val!==null) memCache[key]=val;
+    return val;
+  }catch(e){
+    console.error('storage get failed', e);
+    warnStorageOnce();
+    return Object.prototype.hasOwnProperty.call(memCache,key) ? memCache[key] : null;
+  }
+}
+async function sSet(key, val){
+  memCache[key] = val; // always keep app usable this session
+  try{
+    await window.storage.set(key, JSON.stringify(val), true);
+    return true;
+  }catch(e){
+    console.error('storage set failed', e);
+    warnStorageOnce();
+    return false;
+  }
+}
+async function sDelete(key){
+  delete memCache[key];
+  try{ await window.storage.delete(key, true); }catch(e){ warnStorageOnce(); }
+}
+async function sListKeys(prefix){
+  let keys = [];
+  try{
+    const r = await window.storage.list(prefix, true);
+    keys = r ? r.keys : [];
+  }catch(e){
+    console.error('storage list failed', e);
+    warnStorageOnce();
+  }
+  const memKeys = Object.keys(memCache).filter(k=>k.startsWith(prefix));
+  return [...new Set([...keys, ...memKeys])];
+}
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function genRefCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ---------------- state ---------------- */
+const DEFAULT_REFEREES = [
+  "أحمد الاسمر","تركي زاين","رياض الرويلي","زياد الفلاح","زياد خيران","سعود عارف",
+  "سلطان العرسان","سلمان صاير","سيف الشراري","سيف خيران","عبدالرحمن الملحم",
+  "عبدالعزيز لافي العازمي","عمر عامس","مالك الرويلي","محمد غدير","محمد منوي",
+  "منصور الحسيناوي","مهند مدالله","يوسف العتيق","إبراهيم الكويكبي","سلطان الجارد",
+  "ايمن عطيه","باسل باني","تركي الرويلي","جزاع الراشد","خالد الدغماني","خالد عامس",
+  "ريان الحربي","ريان الرويلي","سعد الشبرمي","سلطان القادر","سيف السنيدي",
+  "صلاح الشمري","طارق الشمري","عادل وسمي","عبدالإله شاكر","عبدالرحمن خلف الشراري",
+  "عبدالرزاق عاذل","عبدالعزيز ملهي","عبدالله الجهني","عبدالله عواد الشراري",
+  "عمر خلف","فايز غدير","فهيد بهدل","فواز العازمي","مازن الرويلي","محمد الشراري",
+  "محمد عبدالعزيز الشراري","مشهور الرويلي","ممدوح وشل","نواف باتل","نواف تيسير",
+  "يزن العويش","عمار ال حيدر","عبدالاله العوذة","احمد محمد"
+];
+const DEFAULT_WEEKS = [
+  { id: uid("w"), label: "الأسبوع 1 — 12 إلى 18 أكتوبر", createdAt: Date.now()+1, days: [
+      { id: uid("d"), label: "الثلاثاء", date: "2025-10-14" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-10-15" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 2 — 19 إلى 25 أكتوبر", createdAt: Date.now()+2, days: [
+      { id: uid("d"), label: "الاثنين", date: "2025-10-20" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-10-21" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-10-22" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 3 — 26 أكتوبر إلى 1 نوفمبر", createdAt: Date.now()+3, days: [
+      { id: uid("d"), label: "الاثنين", date: "2025-10-27" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-10-28" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-10-29" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 4 — 2 إلى 8 نوفمبر", createdAt: Date.now()+4, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-11-02" },
+      { id: uid("d"), label: "الاثنين", date: "2025-11-03" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-11-04" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-11-05" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 5 — 9 إلى 15 نوفمبر", createdAt: Date.now()+5, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-11-09" },
+      { id: uid("d"), label: "الاثنين", date: "2025-11-10" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-11-11" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-11-12" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 6 — 16 إلى 22 نوفمبر", createdAt: Date.now()+6, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-11-16" },
+      { id: uid("d"), label: "الاثنين", date: "2025-11-17" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-11-18" },
+      { id: uid("d"), label: "الأربعاء", date: "2025-11-19" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 7 — 23 إلى 29 نوفمبر", createdAt: Date.now()+7, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-11-23" },
+      { id: uid("d"), label: "الاثنين", date: "2025-11-24" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-11-25" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 8 — 30 نوفمبر إلى 6 ديسمبر", createdAt: Date.now()+8, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-11-30" },
+      { id: uid("d"), label: "الاثنين", date: "2025-12-01" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-12-02" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 9 — 7 إلى 13 ديسمبر", createdAt: Date.now()+9, days: [
+      { id: uid("d"), label: "الأحد", date: "2025-12-07" },
+      { id: uid("d"), label: "الاثنين", date: "2025-12-08" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-12-09" }
+  ]},
+  { id: uid("w"), label: "الأسبوع 10 — 14 إلى 20 ديسمبر", createdAt: Date.now()+10, days: [
+      { id: uid("d"), label: "الاثنين", date: "2025-12-15" },
+      { id: uid("d"), label: "الثلاثاء", date: "2025-12-16" },
+      { id: uid("d"), label: "الجمعة", date: "2025-12-19" }
+  ]},
+];
+
+let STATE = { view:'home', weeks:[], activeWeekId:null, referees:[], adminTab:'weeks', adminUnlocked:false };
+
+async function loadCore(){
+  STATE.weeks = (await sGet('weeks')) || [];
+  STATE.activeWeekId = await sGet('active-week');
+  STATE.referees = (await sGet('referees')) || [];
+  // migrate old plain-string roster to {name, code} objects
+  if(STATE.referees.length && typeof STATE.referees[0] === 'string'){
+    STATE.referees = STATE.referees.map(n => ({ name:n, code: genRefCode() }));
+    await sSet('referees', STATE.referees);
+  }
+  if(STATE.weeks.length===0){
+    STATE.weeks = DEFAULT_WEEKS;
+    await sSet('weeks', STATE.weeks);
+  }
+  if(STATE.referees.length===0){
+    STATE.referees = DEFAULT_REFEREES.map(n => ({ name:n, code: genRefCode() }));
+    await sSet('referees', STATE.referees);
+  }
+}
+
+function getWeek(id){ return STATE.weeks.find(w=>w.id===id); }
+
+/* ---------------- routing ---------------- */
+const mainEl = document.getElementById('main');
+const backBtn = document.getElementById('backBtn');
+const lockBtn = document.getElementById('lockBtn');
+const headSub = document.getElementById('headSub');
+
+function goto(view, opts){
+  STATE.view = view;
+  STATE.opts = opts || {};
+  backBtn.style.display = view==='home' ? 'none' : 'block';
+  lockBtn.style.display = (view==='admin' && STATE.adminUnlocked) ? 'block' : 'none';
+  render();
+}
+backBtn.addEventListener('click', ()=>goto('home'));
+lockBtn.addEventListener('click', ()=>{
+  STATE.adminUnlocked = false;
+  toast('تم قفل لوحة المنسق');
+  goto('admin');
+});
+
+async function render(){
+  headSub.textContent = 'حدّد توفرك قبل ما تنزل التكاليف';
+  if(STATE.view==='home') return renderHome();
+  if(STATE.view==='refEntry') return renderRefEntry();
+  if(STATE.view==='refConfirm') return renderRefConfirm();
+  if(STATE.view==='admin'){ headSub.textContent='لوحة تحكم المنسق'; return renderAdmin(); }
+}
+
+/* ---------------- HOME ---------------- */
+function renderHome(){
+  mainEl.innerHTML = `
+    <div class="role-grid">
+      <div class="role-card" id="goRef">
+        <span class="ic">🙋‍♂️</span>
+        <h3>أنا حكم</h3>
+        <p>سجّل توفرك لمباريات الأسبوع</p>
+      </div>
+      <div class="role-card" id="goAdmin">
+        <span class="ic">🗂️</span>
+        <h3>لوحة المنسق</h3>
+        <p>إدارة الأسابيع ومتابعة الردود</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">آخر تحديث</div>
+      <div class="muted" id="homeStatus">جارٍ التحميل...</div>
+    </div>
+  `;
+  document.getElementById('goRef').onclick = ()=>goto('refEntry');
+  document.getElementById('goAdmin').onclick = ()=>goto('admin');
+  const active = getWeek(STATE.activeWeekId);
+  document.getElementById('homeStatus').textContent = active
+    ? `الأسبوع المفتوح حاليًا: ${active.label} (${active.days.length} يوم)`
+    : 'لا يوجد أسبوع مفتوح حاليًا للتسجيل — تواصل مع المنسق.';
+}
+
+/* ---------------- REFEREE ENTRY ---------------- */
+async function renderRefEntry(){
+  const weeks = [...STATE.weeks].sort((a,b)=>b.createdAt-a.createdAt);
+  if(weeks.length===0){
+    mainEl.innerHTML = `<div class="card empty-note">ما فيه أي أسبوع مضاف بعد.<br>اطلب من المنسق يفتح جدول الأسبوع أول.</div>`;
+    return;
+  }
+  if(STATE.referees.length===0){
+    mainEl.innerHTML = `<div class="card empty-note">اسمك لازم يكون مضاف مسبقًا من المنسق.<br>تواصل معه يضيفك لقائمة الحكام.</div>`;
+    return;
+  }
+  const selectedWeekId = STATE.opts?.weekId || STATE.activeWeekId || weeks[0].id;
+  const week = getWeek(selectedWeekId) || weeks[0];
+  const sortedRefs = [...STATE.referees].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+
+  mainEl.innerHTML = `
+    <div class="card">
+      <div class="field">
+        <label class="field-label">الأسبوع</label>
+        <select id="weekSelect">
+          ${weeks.map(w=>`<option value="${w.id}" ${w.id===week.id?'selected':''}>${w.label}${w.id===STATE.activeWeekId?' — الحالي':''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">اسمك</label>
+        <select id="refName">
+          <option value="">اختر اسمك</option>
+          ${sortedRefs.map(r=>`<option value="${r.name}">${r.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="field-label">الرمز الخاص بك</label>
+        <input type="password" inputmode="numeric" id="refCode" class="pin-input" maxlength="8" placeholder="••••">
+      </div>
+      <div class="pin-error" id="refCodeErr"></div>
+      <button class="btn btn-primary" id="verifyBtn" style="margin-top:6px">متابعة</button>
+    </div>
+    <div id="verifiedArea"></div>
+  `;
+
+  document.getElementById('weekSelect').onchange = (e)=>{
+    goto('refEntry', {weekId:e.target.value});
+  };
+
+  document.getElementById('verifyBtn').onclick = async ()=>{
+    const name = document.getElementById('refName').value;
+    const code = document.getElementById('refCode').value.trim();
+    const err = document.getElementById('refCodeErr');
+    if(!name){ err.textContent='اختر اسمك من القائمة'; return; }
+    const ref = STATE.referees.find(r=>r.name===name);
+    if(!ref || ref.code !== code){ err.textContent='الاسم أو الرمز غير صحيح'; document.getElementById('refCode').value=''; return; }
+    err.textContent='';
+    document.getElementById('refName').disabled = true;
+    document.getElementById('refCode').disabled = true;
+    document.getElementById('verifyBtn').style.display = 'none';
+    await renderVerifiedDays(week, name);
+  };
+}
+
+async function renderVerifiedDays(week, name){
+  const area = document.getElementById('verifiedArea');
+  const existing = await sGet(`avail:${week.id}:${name}`);
+
+  if(week.days.length===0){
+    area.innerHTML = `<div class="card empty-note">هذا الأسبوع ما فيه أيام مضافة بعد.</div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div id="daysArea">
+      ${week.days.map(d=>{
+        const rec = existing?.days?.[d.id];
+        const status = rec?.status || null;
+        const note = rec?.note || '';
+        return `
+        <div class="day-card" data-day="${d.id}">
+          <div class="day-head">
+            <span class="day-name">${d.label}</span>
+            <span class="day-date">${d.date ? formatDate(d.date) : ''}</span>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-btn ${status==='available'?'sel-available':''}" data-status="available">متاح</div>
+            <div class="toggle-btn ${status==='unavailable'?'sel-unavailable':''}" data-status="unavailable">غير متاح</div>
+          </div>
+          <div class="note-input" style="display:${status==='unavailable'?'block':'none'}">
+            <input type="text" class="dayNote" placeholder="سبب الاعتذار (اختياري)" value="${note.replace(/"/g,'&quot;')}">
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-primary" id="submitAvail" style="margin-top:6px">إرسال التوفر</button>
+  `;
+
+  const daysArea = document.getElementById('daysArea');
+  daysArea.querySelectorAll('.day-card').forEach(card=>{
+    const noteWrap = card.querySelector('.note-input');
+    card.querySelectorAll('.toggle-btn').forEach(btn=>{
+      btn.onclick = ()=>{
+        card.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('sel-available','sel-unavailable'));
+        btn.classList.add(btn.dataset.status==='available' ? 'sel-available' : 'sel-unavailable');
+        card.dataset.selected = btn.dataset.status;
+        noteWrap.style.display = btn.dataset.status==='unavailable' ? 'block' : 'none';
+      };
+    });
+    if(card.querySelector('.sel-available,.sel-unavailable')){
+      card.dataset.selected = card.querySelector('.sel-available') ? 'available' : 'unavailable';
+    }
+  });
+
+  document.getElementById('submitAvail').onclick = async ()=>{
+    const cards = [...daysArea.querySelectorAll('.day-card')];
+    const daysData = {};
+    let allSet = true;
+    cards.forEach(card=>{
+      const status = card.dataset.selected;
+      if(!status) allSet = false;
+      const note = card.querySelector('.dayNote')?.value?.trim() || '';
+      daysData[card.dataset.day] = { status: status || null, note: status==='unavailable' ? note : '' };
+    });
+    if(!allSet){ toast('حدد حالتك في كل الأيام (متاح / غير متاح)'); return; }
+
+    const btn = document.getElementById('submitAvail');
+    btn.disabled = true; btn.textContent = 'جارٍ الإرسال...';
+
+    await sSet(`avail:${week.id}:${name}`, { name, weekId:week.id, days:daysData, updatedAt: Date.now() });
+    goto('refConfirm', { weekId: week.id, refName: name, daysData, weekLabel: week.label, weekDays: week.days });
+  };
+}
+
+function formatDate(iso){
+  try{
+    const d = new Date(iso+'T00:00:00');
+    return d.toLocaleDateString('ar-EG', {weekday:'short', day:'numeric', month:'short'});
+  }catch(e){ return iso; }
+}
+
+/* ---------------- REFEREE CONFIRM ---------------- */
+function renderRefConfirm(){
+  const { refName, daysData, weekLabel, weekDays, weekId } = STATE.opts;
+  mainEl.innerHTML = `
+    <div class="card" style="text-align:center">
+      <div class="confirm-icon">✓</div>
+      <h2 style="font-size:18px;margin-bottom:4px">تم استلام توفرك</h2>
+      <p class="muted">${weekLabel} — ${refName}</p>
+    </div>
+    <div class="card">
+      ${weekDays.map(d=>{
+        const rec = daysData[d.id];
+        const isAvail = rec.status==='available';
+        return `<div class="summary-row">
+          <span>${d.label}${d.date? ' · '+formatDate(d.date):''}</span>
+          <span class="pill ${isAvail?'available':'unavailable'}">${isAvail?'متاح':'غير متاح'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" id="editAgain">تعديل ردي</button>
+      <button class="btn btn-primary" id="doneBtn">تم</button>
+    </div>
+  `;
+  document.getElementById('editAgain').onclick = ()=>goto('refEntry',{weekId, refName});
+  document.getElementById('doneBtn').onclick = ()=>goto('home');
+}
+
+/* ---------------- ADMIN AUTH ---------------- */
+async function renderAdmin(){
+  const savedPin = await sGet('admin-pin');
+  if(!savedPin) return renderAdminSetup();
+  if(!STATE.adminUnlocked) return renderAdminLogin(savedPin);
+
+  lockBtn.style.display = 'block';
+  mainEl.innerHTML = `
+    <div class="tabs">
+      <button class="tab-btn ${STATE.adminTab==='weeks'?'active':''}" data-t="weeks">الأسابيع</button>
+      <button class="tab-btn ${STATE.adminTab==='responses'?'active':''}" data-t="responses">الردود</button>
+      <button class="tab-btn ${STATE.adminTab==='referees'?'active':''}" data-t="referees">قائمة الحكام</button>
+      <button class="tab-btn ${STATE.adminTab==='settings'?'active':''}" data-t="settings">الإعدادات</button>
+    </div>
+    <div id="adminBody"></div>
+  `;
+  mainEl.querySelectorAll('.tab-btn').forEach(b=>{
+    b.onclick = ()=>{ STATE.adminTab = b.dataset.t; renderAdmin(); };
+  });
+  const body = document.getElementById('adminBody');
+  if(STATE.adminTab==='weeks') return renderAdminWeeks(body);
+  if(STATE.adminTab==='responses') return renderAdminResponses(body);
+  if(STATE.adminTab==='referees') return renderAdminReferees(body);
+  if(STATE.adminTab==='settings') return renderAdminSettings(body);
+}
+
+function renderAdminSetup(){
+  lockBtn.style.display = 'none';
+  mainEl.innerHTML = `
+    <div class="card lock-wrap">
+      <div class="lock-icon">🔐</div>
+      <h2 style="font-size:17px;margin-bottom:4px">أول دخول للوحة المنسق</h2>
+      <p class="muted">حدد رقم سري (4 أرقام فأكثر) يمنع غيرك من فتح اللوحة</p>
+      <div class="field" style="margin-top:16px">
+        <input type="password" inputmode="numeric" id="pin1" class="pin-input" maxlength="8" placeholder="••••">
+      </div>
+      <div class="field">
+        <input type="password" inputmode="numeric" id="pin2" class="pin-input" maxlength="8" placeholder="أعد كتابته">
+      </div>
+      <div class="pin-error" id="pinErr"></div>
+      <button class="btn btn-primary" id="savePinBtn">حفظ وتفعيل</button>
+    </div>
+  `;
+  document.getElementById('savePinBtn').onclick = async ()=>{
+    const p1 = document.getElementById('pin1').value.trim();
+    const p2 = document.getElementById('pin2').value.trim();
+    const err = document.getElementById('pinErr');
+    if(p1.length<4){ err.textContent='الرقم لازم يكون 4 خانات على الأقل'; return; }
+    if(p1!==p2){ err.textContent='الرقمان غير متطابقين'; return; }
+    await sSet('admin-pin', p1);
+    STATE.adminUnlocked = true;
+    toast('تم تفعيل الرقم السري');
+    goto('admin');
+  };
+}
+
+function renderAdminLogin(savedPin){
+  lockBtn.style.display = 'none';
+  mainEl.innerHTML = `
+    <div class="card lock-wrap">
+      <div class="lock-icon">🔒</div>
+      <h2 style="font-size:17px;margin-bottom:4px">لوحة المنسق مقفلة</h2>
+      <p class="muted">أدخل الرقم السري للمتابعة</p>
+      <div class="field" style="margin-top:16px">
+        <input type="password" inputmode="numeric" id="pinTry" class="pin-input" maxlength="8" placeholder="••••" autofocus>
+      </div>
+      <div class="pin-error" id="pinErr"></div>
+      <button class="btn btn-primary" id="unlockBtn">دخول</button>
+    </div>
+  `;
+  const input = document.getElementById('pinTry');
+  const err = document.getElementById('pinErr');
+  function tryUnlock(){
+    if(input.value.trim()===savedPin){
+      STATE.adminUnlocked = true;
+      goto('admin');
+    } else {
+      err.textContent='رقم غير صحيح';
+      input.value='';
+      input.focus();
+    }
+  }
+  document.getElementById('unlockBtn').onclick = tryUnlock;
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+}
+
+function renderAdminSettings(body){
+  body.innerHTML = `
+    <div class="card">
+      <div class="section-title">تغيير الرقم السري</div>
+      <div class="field">
+        <label class="field-label">الرقم الحالي</label>
+        <input type="password" inputmode="numeric" id="curPin" maxlength="8">
+      </div>
+      <div class="field">
+        <label class="field-label">الرقم الجديد</label>
+        <input type="password" inputmode="numeric" id="newPin1" maxlength="8">
+      </div>
+      <div class="field">
+        <label class="field-label">تأكيد الرقم الجديد</label>
+        <input type="password" inputmode="numeric" id="newPin2" maxlength="8">
+      </div>
+      <div class="pin-error" id="settingsErr"></div>
+      <button class="btn btn-primary" id="changePinBtn">حفظ الرقم الجديد</button>
+    </div>
+  `;
+  document.getElementById('changePinBtn').onclick = async ()=>{
+    const err = document.getElementById('settingsErr');
+    const saved = await sGet('admin-pin');
+    const cur = document.getElementById('curPin').value.trim();
+    const n1 = document.getElementById('newPin1').value.trim();
+    const n2 = document.getElementById('newPin2').value.trim();
+    if(cur!==saved){ err.textContent='الرقم الحالي غير صحيح'; return; }
+    if(n1.length<4){ err.textContent='الرقم الجديد لازم 4 خانات على الأقل'; return; }
+    if(n1!==n2){ err.textContent='الرقمان الجديدان غير متطابقين'; return; }
+    await sSet('admin-pin', n1);
+    err.textContent='';
+    toast('تم تغيير الرقم السري');
+    document.getElementById('curPin').value='';
+    document.getElementById('newPin1').value='';
+    document.getElementById('newPin2').value='';
+  };
+}
+
+function renderAdminWeeks(body){
+  const weeks = [...STATE.weeks].sort((a,b)=>b.createdAt-a.createdAt);
+  body.innerHTML = `
+    <div class="card">
+      <div class="section-title">الأسبوع الجديد</div>
+      <div class="field">
+        <label class="field-label">اسم الأسبوع</label>
+        <input type="text" id="newWeekLabel" placeholder="مثال: الأسبوع 12 — من 2 إلى 8 أغسطس">
+      </div>
+      <label class="field-label">أيام المباريات</label>
+      <div id="dayRows"></div>
+      <button class="btn btn-ghost" id="addDayRow" style="margin-top:4px">+ إضافة يوم</button>
+      <div class="divider"></div>
+      <button class="btn btn-primary" id="createWeek">إنشاء الأسبوع وتفعيله</button>
+    </div>
+    <div class="card">
+      <div class="section-title">كل الأسابيع (${weeks.length})</div>
+      ${weeks.length===0 ? '<p class="muted">لا يوجد أسابيع بعد.</p>' : weeks.map(w=>`
+        <div class="week-item">
+          <div>
+            <div class="wname">${w.label} ${w.id===STATE.activeWeekId?'<span class="active-tag">نشط</span>':''}</div>
+            <div class="wmeta">${w.days.length} يوم</div>
+          </div>
+          <div class="btn-row" style="width:auto">
+            ${w.id!==STATE.activeWeekId ? `<button class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:12.5px" data-act="setActive" data-id="${w.id}">تفعيل</button>`:''}
+            <button class="btn btn-danger" style="width:auto;padding:8px 12px;font-size:12.5px" data-act="delete" data-id="${w.id}">حذف</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  const dayRows = document.getElementById('dayRows');
+  function addRow(label='', date=''){
+    const row = document.createElement('div');
+    row.className='day-row-edit';
+    row.innerHTML = `
+      <input type="text" class="rowLabel" placeholder="اسم اليوم / المباراة" value="${label}">
+      <input type="date" class="rowDate" value="${date}">
+      <button type="button" class="remove-x">×</button>
+    `;
+    row.querySelector('.remove-x').onclick = ()=>row.remove();
+    dayRows.appendChild(row);
+  }
+  addRow(); addRow();
+  document.getElementById('addDayRow').onclick = ()=>addRow();
+
+  document.getElementById('createWeek').onclick = async ()=>{
+    const label = document.getElementById('newWeekLabel').value.trim();
+    if(!label){ toast('اكتب اسم الأسبوع'); return; }
+    const rows = [...dayRows.querySelectorAll('.day-row-edit')];
+    const days = rows.map(r=>({
+      id: uid('d'),
+      label: r.querySelector('.rowLabel').value.trim(),
+      date: r.querySelector('.rowDate').value
+    })).filter(d=>d.label);
+    if(days.length===0){ toast('أضف يوم واحد على الأقل'); return; }
+    const week = { id: uid('w'), label, createdAt: Date.now(), days };
+    STATE.weeks.push(week);
+    await sSet('weeks', STATE.weeks);
+    STATE.activeWeekId = week.id;
+    await sSet('active-week', week.id);
+    toast('تم إنشاء الأسبوع وتفعيله');
+    renderAdminWeeks(body);
+  };
+
+  body.querySelectorAll('[data-act="setActive"]').forEach(b=>{
+    b.onclick = async ()=>{
+      STATE.activeWeekId = b.dataset.id;
+      await sSet('active-week', STATE.activeWeekId);
+      toast('تم تفعيل الأسبوع');
+      renderAdminWeeks(body);
+    };
+  });
+  body.querySelectorAll('[data-act="delete"]').forEach(b=>{
+    b.onclick = async ()=>{
+      if(!confirm('حذف هذا الأسبوع نهائيًا؟ الردود المرتبطة فيه بتبقى محفوظة بس ما بتظهر.')) return;
+      STATE.weeks = STATE.weeks.filter(w=>w.id!==b.dataset.id);
+      await sSet('weeks', STATE.weeks);
+      if(STATE.activeWeekId===b.dataset.id){
+        STATE.activeWeekId = null;
+        await sSet('active-week', null);
+      }
+      renderAdminWeeks(body);
+    };
+  });
+}
+
+async function renderAdminResponses(body){
+  const weeks = [...STATE.weeks].sort((a,b)=>b.createdAt-a.createdAt);
+  if(weeks.length===0){
+    body.innerHTML = `<div class="card empty-note">أنشئ أسبوع أول من تبويب "الأسابيع".</div>`;
+    return;
+  }
+  const weekId = STATE.opts?.respWeekId || STATE.activeWeekId || weeks[0].id;
+  const week = getWeek(weekId) || weeks[0];
+
+  body.innerHTML = `
+    <div class="card">
+      <div class="field" style="margin-bottom:0">
+        <label class="field-label">اختر الأسبوع</label>
+        <select id="respWeekSelect">
+          ${weeks.map(w=>`<option value="${w.id}" ${w.id===week.id?'selected':''}>${w.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="card" id="matrixCard">
+      <div class="section-title">جدول التوفر</div>
+      <div id="matrixWrap"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">لم يستجب بعد</div>
+      <div id="notRespondedWrap" class="muted">جارٍ التحميل...</div>
+    </div>
+    <button class="btn btn-primary" id="exportBtn">⬇ تصدير Excel لهذا الأسبوع</button>
+  `;
+
+  document.getElementById('respWeekSelect').onchange = (e)=>{
+    STATE.opts = { respWeekId: e.target.value };
+    renderAdminResponses(body);
+  };
+
+  const keys = await sListKeys(`avail:${week.id}:`);
+  const records = (await Promise.all(keys.map(k=>sGet(k)))).filter(Boolean);
+  const respondedNames = records.map(r=>r.name);
+  const notResponded = STATE.referees.map(r=>r.name).filter(n=>!respondedNames.includes(n));
+
+  const matrixWrap = document.getElementById('matrixWrap');
+  if(week.days.length===0){
+    matrixWrap.innerHTML = '<p class="muted">هذا الأسبوع بدون أيام.</p>';
+  } else if(records.length===0){
+    matrixWrap.innerHTML = '<p class="muted">ما فيه ردود بعد لهذا الأسبوع.</p>';
+  } else {
+    matrixWrap.innerHTML = `
+      <div class="matrix-wrap">
+        <table class="matrix">
+          <thead><tr>
+            <th>الحكم</th>
+            ${week.days.map(d=>`<th>${d.label}</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${records.sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(rec=>`
+              <tr>
+                <td>${rec.name}</td>
+                ${week.days.map(d=>{
+                  const s = rec.days?.[d.id]?.status;
+                  const note = rec.days?.[d.id]?.note;
+                  const cls = s==='available'?'available':s==='unavailable'?'unavailable':'pending';
+                  const label = s==='available'?'متاح':s==='unavailable'?'غير متاح':'—';
+                  return `<td class="${cls}" title="${note?note.replace(/"/g,'&quot;'):''}">${label}</td>`;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  document.getElementById('notRespondedWrap').innerHTML = notResponded.length
+    ? notResponded.map(n=>`<span class="pill pending" style="margin:3px 4px 3px 0;display:inline-block">${n}</span>`).join('')
+    : '<span class="muted">الكل رد ✓</span>';
+
+  document.getElementById('exportBtn').onclick = ()=>exportWeekExcel(week, records, notResponded);
+}
+
+function exportWeekExcel(week, records, notResponded){
+  if(week.days.length===0 || records.length===0 && notResponded.length===0){
+    toast('ما فيه بيانات كافية للتصدير');
+    return;
+  }
+  const allNames = [...new Set([...records.map(r=>r.name), ...notResponded])].sort((a,b)=>a.localeCompare(b,'ar'));
+
+  // sheet 1: matrix
+  const header = ['الحكم', ...week.days.map(d=>d.label)];
+  const matrixRows = allNames.map(name=>{
+    const rec = records.find(r=>r.name===name);
+    const row = [name];
+    week.days.forEach(d=>{
+      const s = rec?.days?.[d.id]?.status;
+      row.push(s==='available' ? 'متاح' : s==='unavailable' ? 'غير متاح' : 'لم يرد');
+    });
+    return row;
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet([header, ...matrixRows]);
+
+  // sheet 2: details (flat, one row per day)
+  const detailHeader = ['الحكم','اليوم','التاريخ','الحالة','ملاحظة'];
+  const detailRows = [];
+  records.forEach(rec=>{
+    week.days.forEach(d=>{
+      const info = rec.days?.[d.id];
+      if(!info) return;
+      detailRows.push([
+        rec.name, d.label, d.date || '',
+        info.status==='available' ? 'متاح' : 'غير متاح',
+        info.note || ''
+      ]);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, 'المصفوفة');
+  XLSX.utils.book_append_sheet(wb, ws2, 'التفاصيل');
+  XLSX.writeFile(wb, `توفر-${week.label}.xlsx`);
+  toast('تم تنزيل الملف');
+}
+
+function renderAdminReferees(body){
+  body.innerHTML = `
+    <div class="card">
+      <div class="section-title">إضافة حكم للقائمة</div>
+      <div class="btn-row" style="align-items:flex-start">
+        <input type="text" id="newRefName" placeholder="اسم الحكم">
+        <button class="btn btn-primary" id="addRefBtn" style="flex:none;width:auto;padding:12px 18px">إضافة</button>
+      </div>
+      <p class="muted" style="margin-top:8px">كل حكم يُعطى رمزًا سريًا من 4 أرقام تلقائيًا — أرسله له على الخاص. بدون الاسم + الرمز الصحيحين ما يقدر أحد يسجل أو يعدّل توفر حكم غيره.</p>
+    </div>
+    <div class="card">
+      <div class="section-title">الحكام (${STATE.referees.length})</div>
+      <div id="refRows"></div>
+    </div>
+  `;
+  const rows = document.getElementById('refRows');
+  function drawRows(){
+    const sorted = [...STATE.referees].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+    rows.innerHTML = sorted.length ? sorted.map(r=>`
+      <div class="week-item" data-name="${r.name}">
+        <div>
+          <div class="wname">${r.name}</div>
+          <div class="wmeta">الرمز: <b style="color:var(--pitch);letter-spacing:2px">${r.code}</b></div>
+        </div>
+        <div class="btn-row" style="width:auto">
+          <button class="btn btn-ghost" data-act="regen" style="width:auto;padding:8px 12px;font-size:12.5px">🔁 رمز جديد</button>
+          <button class="btn btn-danger" data-act="remove" style="width:auto;padding:8px 12px;font-size:12.5px">حذف</button>
+        </div>
+      </div>
+    `).join('') : '<p class="muted">لا يوجد حكام مضافين بعد.</p>';
+
+    rows.querySelectorAll('[data-act="regen"]').forEach(b=>{
+      b.onclick = async ()=>{
+        const name = b.closest('.week-item').dataset.name;
+        const ref = STATE.referees.find(r=>r.name===name);
+        if(!ref) return;
+        ref.code = genRefCode();
+        await sSet('referees', STATE.referees);
+        toast(`رمز جديد لـ ${name}: ${ref.code}`);
+        drawRows();
+      };
+    });
+    rows.querySelectorAll('[data-act="remove"]').forEach(b=>{
+      b.onclick = async ()=>{
+        const name = b.closest('.week-item').dataset.name;
+        if(!confirm(`حذف ${name} من قائمة الحكام؟`)) return;
+        STATE.referees = STATE.referees.filter(r=>r.name!==name);
+        await sSet('referees', STATE.referees);
+        drawRows();
+      };
+    });
+  }
+  drawRows();
+
+  document.getElementById('addRefBtn').onclick = async ()=>{
+    const input = document.getElementById('newRefName');
+    const name = input.value.trim();
+    if(!name){ return; }
+    if(STATE.referees.some(r=>r.name===name)){ toast('الاسم موجود مسبقًا'); return; }
+    const code = genRefCode();
+    STATE.referees.push({ name, code });
+    await sSet('referees', STATE.referees);
+    input.value='';
+    toast(`تمت الإضافة — رمز ${name}: ${code}`);
+    drawRows();
+  };
+}
+
+/* ---------------- boot ---------------- */
+(async function boot(){
+  await loadCore();
+  render();
+})();
+</script>
+</body>
+</html>
